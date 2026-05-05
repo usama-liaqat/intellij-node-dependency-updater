@@ -1,0 +1,70 @@
+<!-- Plugin Configuration File. Read more: https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html -->
+<idea-plugin>
+    <!-- Unique identifier of the plugin. It should be FQN. It cannot be changed between the plugin versions. -->
+    <id>io.github.osamaliaqat.nodedependencyupdater</id>
+
+    <!-- Public plugin name should be written in Title Case.
+     Guidelines: https://plugins.jetbrains.com/docs/marketplace/best-practices-for-listing.html#plugin-name -->
+    <name>Node Dependency Updater</name>
+
+    <!-- A displayed Vendor name or Organization ID displayed on the Plugins Page. -->
+    <vendor url="https://github.com/osamaliaqat">Osama Liaqat</vendor>
+
+    <!-- Description of the plugin displayed on the Plugin Page and IDE Plugin Manager.
+         Guidelines: https://plugins.jetbrains.com/docs/marketplace/best-practices-for-listing.html#plugin-description -->
+    <description><![CDATA[
+        <p>
+          Inspect and update outdated Node.js dependencies from a side tool window — without
+          dropping into the terminal. Designed for projects that ship multiple packages
+          (workspaces / monorepos) and care which version actually gets installed.
+        </p>
+
+        <h3>What you get</h3>
+        <ul>
+          <li>One card per outdated package: <b>current → latest</b> with release dates.</li>
+          <li>Per-package version picker — choose a specific version instead of always taking <code>latest</code>.</li>
+          <li><b>Min release age</b> filter — hide versions younger than N days to dodge fresh-but-broken releases.</li>
+          <li><b>Ignore</b> checkbox per package, so <i>Update All</i> skips the ones you've pinned.</li>
+          <li><b>Post-update command</b> — run a shell command (e.g. <code>yarn install &amp;&amp; pod install</code>) after a successful update.</li>
+          <li>Workspace and dep-type badges (prod / dev / peer) so you can tell at a glance what you're updating.</li>
+        </ul>
+
+        <h3>Supported package managers</h3>
+        <p>Auto-detected from the lockfile — <b>npm</b>, <b>yarn</b> (classic &amp; berry), <b>pnpm</b>, <b>bun</b>.</p>
+
+        <h3>How to open it</h3>
+        <p>
+          Tools → <i>Update Node Dependencies…</i>, or click the refresh icon on the main toolbar,
+          or open the <i>Node Dependency Updater</i> tool window on the right edge. The action only
+          shows up when the project has a <code>package.json</code> at its root.
+        </p>
+
+        <p>
+          Project-scoped settings (min age, post-update command) persist in <code>.idea/workspace.xml</code>,
+          so they stay local to your machine and don't get committed.
+        </p>
+        ]]></description>
+
+    <!-- Product and plugin compatibility requirements.
+         Read more: https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html -->
+    <depends>com.intellij.modules.platform</depends>
+    <depends>JavaScript</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <toolWindow id="Node Dependency Updater"
+                    anchor="right"
+                    icon="AllIcons.Actions.Refresh"
+                    factoryClass="io.github.osamaliaqat.nodedependencyupdater.ui.NodeDependencyUpdaterToolWindowFactory"/>
+    </extensions>
+
+    <actions>
+        <action id="NodeDependencyUpdater.ShowOutdated"
+                class="io.github.osamaliaqat.nodedependencyupdater.action.ShowOutdatedDependenciesAction"
+                text="Update Node Dependencies…"
+                description="Open the Node Dependency Updater tool window.">
+            <add-to-group group-id="MainToolbarRight" anchor="last"/>
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+        </action>
+    </actions>
+
+</idea-plugin>
