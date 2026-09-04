@@ -18,6 +18,25 @@ version = providers.environmentVariable("PLUGIN_VERSION").orElse("").get()
 // Set the JVM language level used to build the project.
 kotlin {
     jvmToolchain(21)
+
+    compilerOptions {
+        // Keeps the JetBrains Plugin Verifier quiet about deprecated/experimental API we never call.
+        //
+        // In the default `enable` mode, kotlinc emits a DefaultImpls-compatibility override for every
+        // default method a class inherits from a Kotlin interface. Implementing ToolWindowFactory
+        // therefore produced five synthetic methods whose bodies are a single super-call —
+        // isApplicable, isDoNotActivateOnStart (both deprecated) and getAnchor, getIcon, manage (all
+        // experimental) — none of which appear anywhere in this source tree. The Marketplace counted
+        // them as 4 deprecated + 6 experimental API usages.
+        //
+        // `no-compatibility` drops those delegates; inherited defaults dispatch straight to the
+        // interface method, which is what the platform expects. Safe here because this module
+        // declares no Kotlin interfaces of its own, so nothing depends on DefaultImpls being emitted.
+        // Verify with:
+        //   javap -p build/classes/kotlin/main/.../NodeDependencyUpdaterToolWindowFactory.class
+        // It must list only the constructor, shouldBeAvailable and createToolWindowContent.
+        freeCompilerArgs.add("-jvm-default=no-compatibility")
+    }
 }
 
 repositories {
@@ -76,6 +95,31 @@ intellijPlatform {
                 )
             }
         }
+    }
+
+    // Runs the JetBrains Plugin Verifier — the same tool that produces the compatibility report on
+    // the Marketplace listing. `verifyPluginStructure` (which CI already ran) only checks plugin.xml;
+    // it does NOT inspect bytecode, which is why deprecated/experimental API usages first surfaced
+    // after publishing rather than in CI.
+    //
+    // Pinned to IntelliJ IDEA Ultimate rather than `recommended()`: the Marketplace verified against
+    // IU-261.26222.65, and IU is the product that bundles the JavaScript plugin this plugin depends
+    // on. `recommended()` would resolve several IDEs and download each one.
+    pluginVerification {
+        ides {
+            ide(org.jetbrains.intellij.platform.gradle.IntelliJPlatformType.IntellijIdeaUltimate, "2026.1")
+        }
+
+        // Without this the task exits 0 even when the report lists deprecated/experimental usages —
+        // measured: a build with the jvm-default flag removed still passed with "4 usages of
+        // deprecated API, 6 usages of experimental API". Listing these levels is what turns the
+        // verifier from a report into a gate, so a regression fails CI instead of reaching the store.
+        failureLevel = listOf(
+            org.jetbrains.intellij.platform.gradle.tasks.VerifyPluginTask.FailureLevel.COMPATIBILITY_PROBLEMS,
+            org.jetbrains.intellij.platform.gradle.tasks.VerifyPluginTask.FailureLevel.INVALID_PLUGIN,
+            org.jetbrains.intellij.platform.gradle.tasks.VerifyPluginTask.FailureLevel.DEPRECATED_API_USAGES,
+            org.jetbrains.intellij.platform.gradle.tasks.VerifyPluginTask.FailureLevel.EXPERIMENTAL_API_USAGES,
+        )
     }
 
     // Marketplace publishing — reads PUBLISH_TOKEN from the environment (used by the release workflow).

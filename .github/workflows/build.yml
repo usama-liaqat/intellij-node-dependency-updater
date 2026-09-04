@@ -31,6 +31,32 @@ jobs:
       - name: Verify plugin structure
         run: ./gradlew verifyPluginStructure --stacktrace
 
+      # Runs the JetBrains Plugin Verifier — the same bytecode analysis behind the compatibility
+      # report on the Marketplace listing. verifyPluginStructure above only validates plugin.xml,
+      # so deprecated/experimental API usages used to reach the store before anyone noticed.
+      #
+      # Caches the whole ~/.pluginVerifier tree, not just ides/. Verified locally: `ides/` stays
+      # empty because the Gradle plugin supplies the IDE from the Gradle cache, while resolving
+      # <depends>JavaScript</depends> and its transitive tree pulls ~850 MB of plugins from the
+      # Marketplace into loaded-plugins/ and extracted-plugins/. That is the expensive part.
+      - name: Cache Plugin Verifier downloads
+        uses: actions/cache@v4
+        with:
+          path: ~/.pluginVerifier
+          key: plugin-verifier-${{ runner.os }}-${{ hashFiles('gradle.properties', 'build.gradle.kts') }}
+          restore-keys: plugin-verifier-${{ runner.os }}-
+
+      - name: Verify plugin compatibility
+        run: ./gradlew verifyPlugin --stacktrace
+
+      - name: Upload verifier report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: plugin-verifier-report
+          path: build/reports/pluginVerifier/
+          retention-days: 14
+
       - name: Build plugin
         run: ./gradlew buildPlugin --stacktrace
 
